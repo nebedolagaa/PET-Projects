@@ -8,6 +8,8 @@ from tkinter import ttk, filedialog, messagebox
 import os
 import shutil
 import threading
+import json
+from datetime import datetime
 
 # ---------------------- File categories configuration ----------------------
 # FILE_CATEGORIES dictionary: key — category/folder name, value — list of extensions.
@@ -26,12 +28,13 @@ class FileOrganizerApp:
     def __init__(self, root):
         self.root = root
         root.title("File Organizer")
-        root.geometry("500x250")  # Window size (can be customized)
+        root.geometry("500x300")  # Increased height for undo button
         root.resizable(False, False)
 
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             logo_path = os.path.join(script_dir, "logo.png")
+            print(f"Looking for logo at: {logo_path}")
             icon = tk.PhotoImage(file=logo_path)
             root.iconphoto(True, icon)
         except Exception as e:
@@ -39,6 +42,10 @@ class FileOrganizerApp:
 
         # Flag for canceling sorting
         self.cancelled = False
+        
+        # Log of file operations for undo feature
+        self.file_operations = []
+        self.has_operations = False
 
         # Interface variables
         self.selected_folder = tk.StringVar()
@@ -80,6 +87,12 @@ class FileOrganizerApp:
         self.btn_sort.pack(side="left", padx=5)
         self.btn_cancel = ttk.Button(btn_frame, text="Cancel", command=self.cancel_sorting, state='disabled')
         self.btn_cancel.pack(side="left", padx=5)
+        
+        # "Undo" button (initially disabled)
+        undo_frame = ttk.Frame(self.root)
+        undo_frame.pack(pady=10)
+        self.btn_undo = ttk.Button(undo_frame, text="Undo Last Sort", command=self.undo_sorting, state='disabled')
+        self.btn_undo.pack()
 
     def select_folder(self):
         """Handler for the folder selection button."""
@@ -107,8 +120,12 @@ class FileOrganizerApp:
         # Disable "Sort" button and enable "Cancel"
         self.btn_sort.config(state='disabled')
         self.btn_cancel.config(state='enabled')
+        self.btn_undo.config(state='disabled')
         self.progress_var.set(0)
         self.cancelled = False
+        
+        # Clear previous operations log
+        self.file_operations = []
 
         # Start background sorting in a thread
         threading.Thread(target=self._sort_files_thread, args=(folder,), daemon=True).start()
@@ -130,19 +147,47 @@ class FileOrganizerApp:
                 if ext in extensions:
                     dest_dir = os.path.join(folder, category)
                     os.makedirs(dest_dir, exist_ok=True)  # Create folder if needed
-                    shutil.move(src_path, os.path.join(dest_dir, filename))  # Move the file
+                    dest_path = os.path.join(dest_dir, filename)
+                    shutil.move(src_path, dest_path)  # Move the file
+                    
+                    # Log the operation for undo feature
+                    self.file_operations.append({
+                        'source': src_path,
+                        'destination': dest_path
+                    })
+                    
                     moved = True
                     break
+                    
             # If file doesn't match any category — move to Others
             if not moved:
                 other_dir = os.path.join(folder, "Others")
                 os.makedirs(other_dir, exist_ok=True)
-                shutil.move(src_path, os.path.join(other_dir, filename))
+                dest_path = os.path.join(other_dir, filename)
+                shutil.move(src_path, dest_path)
+                
+                # Log the operation for undo feature
+                self.file_operations.append({
+                    'source': src_path,
+                    'destination': dest_path
+                })
 
             done += 1
             # Update indicator (through the main thread)
             progress_percent = done / total * 100
             self.root.after(0, self.progress_var.set, progress_percent)
+        
+        # Save operations to file for potential future recovery
+        if not self.cancelled and self.file_operations:
+            try:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                log_path = os.path.join(script_dir, f"sort_log_{timestamp}.json")
+                
+                with open(log_path, 'w') as log_file:
+                    json.dump(self.file_operations, log_file)
+            except Exception as e:
+                print(f"Could not save operations log: {e}")
 
         # After completion (or cancellation) return buttons to initial state
         self.root.after(0, self._finish_sorting)
@@ -158,8 +203,73 @@ class FileOrganizerApp:
             messagebox.showinfo("Canceled", "Sorting was canceled.")
         else:
             messagebox.showinfo("Done", "Sorting completed successfully.")
+        
         self.btn_sort.config(state='enabled')
         self.btn_cancel.config(state='disabled')
+        self.progress_var.set(0)
+        
+        # Enable undo button if operations were performed
+        if self.file_operations:
+            self.btn_undo.config(state='enabled')
+            self.has_operations = True
+
+    def undo_sorting(self):
+        """Restore files to their original locations."""
+        if not self.file_operations:
+            messagebox.showinfo("Info", "No operations to undo.")
+            return
+            
+        # Disable buttons while undoing
+        self.btn_sort.config(state='disabled')
+        self.btn_undo.config(state='disabled')
+        self.progress_var.set(0)
+        
+        # Start background undo in a thread
+        threading.Thread(target=self._undo_files_thread, daemon=True).start()
+
+    def _undo_files_thread(self):
+        """Background function: moves files back to their original locations."""
+        total = len(self.file_operations)
+        done = 0
+        
+        # Reverse the operations to undo in reverse order
+        reversed_ops = self.file_operations[::-1]
+        
+        for operation in reversed_ops:
+            try:
+                source_path = operation['source']
+                dest_path = operation['destination']
+                
+                # Check if file still exists at destination
+                if os.path.exists(dest_path):
+                    # Ensure source directory exists
+                    source_dir = os.path.dirname(source_path)
+                    if not os.path.exists(source_dir):
+                        os.makedirs(source_dir, exist_ok=True)
+                        
+                    # Move file back to original location
+                    shutil.move(dest_path, source_path)
+                
+                done += 1
+                # Update progress
+                progress_percent = done / total * 100
+                self.root.after(0, self.progress_var.set, progress_percent)
+                
+            except Exception as e:
+                print(f"Error during undo: {e}")
+        
+        # Clear operations after undo
+        self.file_operations = []
+        self.has_operations = False
+        
+        # Reset interface
+        self.root.after(0, self._finish_undo)
+
+    def _finish_undo(self):
+        """Reset interface after undo operation."""
+        messagebox.showinfo("Done", "Files restored to original locations.")
+        self.btn_sort.config(state='enabled')
+        self.btn_undo.config(state='disabled')
         self.progress_var.set(0)
 
 
