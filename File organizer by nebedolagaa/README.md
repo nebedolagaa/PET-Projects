@@ -46,8 +46,7 @@ python file_organizer.py
 
 ## Screenshots
 
-![image](https://github.com/user-attachments/assets/1bd2d5f6-ffa2-424a-b9c7-ebb10c554dea)
-
+![image](https://github.com/user-attachments/assets/fd6f078d-7076-4e8f-89c9-28fe422fa791)
 
 ## License
 
