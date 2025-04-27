@@ -30,7 +30,9 @@ class FileOrganizerApp:
         root.resizable(False, False)
 
         try:
-            icon = tk.PhotoImage(file="logo.png")
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            logo_path = os.path.join(script_dir, "logo.png")
+            icon = tk.PhotoImage(file=logo_path)
             root.iconphoto(True, icon)
         except Exception as e:
             print(f"Could not load icon: {e}")
