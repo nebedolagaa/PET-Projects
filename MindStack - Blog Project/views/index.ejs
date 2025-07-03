@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MindStack</title>
+    
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <meta name="theme-color" content="#58a6ff">
+    
+    <!-- Stylesheets -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/">$ mindstack</a>
+            <a class="btn btn-outline-light" href="/new">[ new_post ]</a>
+        </div>
+    </nav>
+    
+    <div class="container my-4 flex-grow-1">
+        <div class="hero-section">
+            <h1>MINDSTACK</h1>
+            <p class="lead">Posts: <%= totalPosts %> | Status: ONLINE | Page: <%= currentPage %>/<%= totalPages %></p>
+        </div>
+
+        <% if (posts.length === 0) { %>
+            <div class="empty-state">
+                <h3>No Posts Found</h3>
+                <p>The database is empty. Create your first post.</p>
+                <a href="/new" class="btn btn-outline-light">Create Post</a>
+            </div>
+        <% } else { %>
+            <div class="row">
+                <% posts.forEach(function(post, index) { %>
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                POST_<%= ((currentPage - 1) * 6) + index + 1 %>.TXT
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title"><%= post.title %></h5>
+                                <p class="card-text"><%= post.content.substring(0, 100) %>...</p>
+                                <div class="d-flex gap-2">
+                                    <a href="/posts/<%= post.id %>" class="btn btn-outline-light btn-sm">[ VIEW ]</a>
+                                    <a href="/edit/<%= post.id %>" class="btn btn-outline-primary btn-sm">[ EDIT ]</a>
+                                    <form method="POST" action="/posts/<%= post.id %>?_method=DELETE" class="d-inline">
+                                        <button class="btn btn-outline-danger btn-sm">[ DELETE ]</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+            
+            <% if (totalPages > 1) { %>
+                <nav aria-label="Blog pagination" class="mt-4">
+                    <ul class="pagination pagination-sm justify-content-center">
+                        <% if (currentPage > 1) { %>
+                            <li class="page-item">
+                                <a class="page-link" href="/?page=<%= currentPage - 1 %>">[ PREV ]</a>
+                            </li>
+                        <% } %>
+                        
+                        <% for (let i = 1; i <= totalPages; i++) { %>
+                            <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+                                <a class="page-link" href="/?page=<%= i %>"><%= i %></a>
+                            </li>
+                        <% } %>
+                        
+                        <% if (currentPage < totalPages) { %>
+                            <li class="page-item">
+                                <a class="page-link" href="/?page=<%= currentPage + 1 %>">[ NEXT ]</a>
+                            </li>
+                        <% } %>
+                    </ul>
+                </nav>
+            <% } %>
+        <% } %>
+    </div>
+
+    <footer class="mt-auto">
+        <div class="container text-center">
+            <p class="mb-0">
+                © <%= new Date().getFullYear() %> MindStack - Made by nebedolagaa 
+                <a href="https://github.com/nebedolagaa" class="text-decoration-none text-reset">
+                    <i class="bi bi-github"></i>
+                </a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
