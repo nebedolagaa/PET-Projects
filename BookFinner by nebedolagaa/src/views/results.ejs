@@ -1,0 +1,73 @@
+<%- include('partials/header', { title: 'Resultater for ' + query }) %>
+  <a class="back" href="/">← Nytt søk</a>
+  <h2>Resultater for: "<%= query %>"</h2>
+  <% if (typeof totalPages !== 'undefined' && totalPages > 0) { %>
+    <div class="meta" style="margin:4px 0 18px;">Totalt sider: <%= totalPages %></div>
+  <% } %>
+
+  <form method="GET" action="/books/search" class="search-form" style="margin-bottom:28px;">
+    <input type="hidden" name="q" value="<%= query %>">
+    <label style="display:flex; align-items:center; gap:8px; font-size:14px;">
+      Per side:
+      <select name="perPage" onchange="this.form.submit()" style="padding:6px 8px; font-size:14px;">
+        <% [12,24,36,48].forEach(opt => { %>
+          <option value="<%= opt %>" <%= perPage === opt ? 'selected' : '' %>><%= opt %></option>
+        <% }) %>
+      </select>
+    </label>
+  </form>
+
+  <% if (error) { %>
+    <div class="alert error"><%= error %></div>
+  <% } else if (!books.length) { %>
+    <div class="alert empty">Ingen treff</div>
+  <% } else { %>
+    <div class="grid">
+      <% books.forEach(b => { %>
+        <div class="card">
+          <% if (b.coverId) { %>
+            <img src="https://covers.openlibrary.org/b/id/<%= b.coverId %>-M.jpg" alt="<%= b.title %>">
+          <% } else { %>
+            <div class="no-cover">Ingen omslag</div>
+          <% } %>
+          <div class="title"><%= b.title %></div>
+          <div class="meta">Forfatter: <%= b.author %></div>
+          <div class="meta">År: <%= b.year %></div>
+        </div>
+      <% }) %>
+    </div>
+  <% if (books.length) { %>
+    <nav class="pagination" aria-label="Resultatsider">
+      <% const base = '/books/search?q=' + encodeURIComponent(query) + '&perPage=' + perPage + '&page='; %>
+      <!-- Første / Forrige -->
+      <% if (page > 1) { %>
+        <a class="page" href="<%= base + 1 %>">Til start</a>
+        <a class="page prev" href="<%= base + (page - 1) %>">« Forrige</a>
+      <% } else { %>
+        <span class="page disabled">Til start</span>
+        <span class="page disabled">« Forrige</span>
+      <% } %>
+
+      <!-- Nummererte sider -->
+      <% pages.forEach(p => { %>
+        <% if (p === '…') { %>
+          <span class="page disabled">…</span>
+        <% } else if (p === page) { %>
+          <span class="page current"><%= p %></span>
+        <% } else { %>
+          <a class="page" href="<%= base + p %>"><%= p %></a>
+        <% } %>
+      <% }) %>
+
+      <!-- Neste / Til slutt -->
+      <% if (page < totalPages) { %>
+        <a class="page next" href="<%= base + (page + 1) %>">Neste »</a>
+        <a class="page" href="<%= base + totalPages %>">Til slutt</a>
+      <% } else { %>
+        <span class="page disabled">Neste »</span>
+        <span class="page disabled">Til slutt</span>
+      <% } %>
+    </nav>
+  <% } %>
+  <% } %>
+<%- include('partials/footer') %>

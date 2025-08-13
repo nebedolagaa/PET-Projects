@@ -1,0 +1,14 @@
+<%- include('partials/header', { title: 'Boksøk' }) %>
+  <section class="intro">
+    <h2>Finn bøker raskt</h2>
+    <p>Denne enkle tjenesten lar deg søke etter bøker ved å bruke OpenLibrary sitt åpne API. Du skriver bare inn en tittel (eller del av en tittel) og får tilbake grunnleggende info: tittel, forfatter, første utgivelsesår og eventuelt omslag.</p>
+    <p>Resultatene er et utdrag (ikke hele databasen), og hastigheten kan variere litt avhengig av belastning hos OpenLibrary. Mangler en bok omslag, viser vi en plassholder.</p>
+    <p><strong>Tips:</strong> Prøv å søke på for eksempel «Harry Potter», «Norsk historie» eller «Data science».</p>
+  </section>
+  <section class="search-box">
+    <form method="GET" action="/books/search" class="search-form" aria-label="Søkeskjema for bøker">
+      <input type="text" name="q" placeholder="Skriv inn boktittel" aria-label="Boktittel" required />
+      <button type="submit">Søk</button>
+    </form>
+  </section>
+<%- include('partials/footer') %>
